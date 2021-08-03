@@ -2,7 +2,7 @@ policy "cis-v1.20" {
   description = "AWS CIS V1.20 Policy"
   configuration {
     provider "aws" {
-      version = ">= 0.4.11"
+      version = ">= 0.5.0"
     }
   }
 
@@ -36,7 +36,7 @@ policy "cis-v1.20" {
       description = "AWS CIS 1.3 Ensure credentials unused for 90 days or greater are disabled (Scored)"
       query =<<EOF
       SELECT account_id, arn, password_last_used, user_name, access_key_id, last_used FROM aws_iam_users
-        JOIN aws_iam_user_access_keys on aws_iam_users.id = aws_iam_user_access_keys.user_id
+        JOIN aws_iam_user_access_keys on aws_iam_users.cq_id = aws_iam_user_access_keys.user_cq_id
        WHERE (password_enabled AND password_last_used < (now() - '90 days'::interval) OR
              (last_used < (now() - '90 days'::interval)))
     EOF
@@ -46,7 +46,7 @@ policy "cis-v1.20" {
       description = "AWS CIS 1.4 Ensure access keys are rotated every 90 days or less"
       query =<<EOF
       SELECT account_id, arn, password_last_used, user_name, access_key_id, last_used, last_rotated FROM aws_iam_users
-        JOIN aws_iam_user_access_keys on aws_iam_users.id = aws_iam_user_access_keys.user_id
+        JOIN aws_iam_user_access_keys on aws_iam_users.cq_id = aws_iam_user_access_keys.user_cq_id
        WHERE last_rotated < (now() - '90 days'::interval)
     EOF
     }
@@ -111,7 +111,7 @@ policy "cis-v1.20" {
       description = "AWS CIS 1.12  Ensure no root account access key exists (Scored)"
       query =<<EOF
       select * from aws_iam_users
-          JOIN aws_iam_user_access_keys aiuak on aws_iam_users.id = aiuak.user_id
+          JOIN aws_iam_user_access_keys aiuak on aws_iam_users.cq_id = aiuak.user_cq_id
       WHERE user_name = '<root>'
     EOF
     }
@@ -138,7 +138,7 @@ policy "cis-v1.20" {
       description = "AWS CIS 1.16 Ensure IAM policies are attached only to groups or roles (Scored)"
       query =<<EOF
       SELECT aws_iam_users.account_id, arn, user_name FROM aws_iam_users
-      JOIN aws_iam_user_attached_policies aiuap on aws_iam_users.id = aiuap.user_id
+      JOIN aws_iam_user_attached_policies aiuap on aws_iam_users.cq_id = aiuap.user_cq_id
     EOF
     }
   }
@@ -149,8 +149,8 @@ policy "cis-v1.20" {
     query "2.1" {
       description = "AWS CIS 2.1 Ensure CloudTrail is enabled in all regions"
       query =<<EOF
-      SELECT aws_cloudtrail_trails.account_id, trail_arn, is_multi_region_trail, read_write_type, include_management_events FROM aws_cloudtrail_trails
-      JOIN aws_cloudtrail_trail_event_selectors on aws_cloudtrail_trails.id = aws_cloudtrail_trail_event_selectors.trail_id
+      SELECT aws_cloudtrail_trails.account_id, arn, is_multi_region_trail, read_write_type, include_management_events FROM aws_cloudtrail_trails
+      JOIN aws_cloudtrail_trail_event_selectors on aws_cloudtrail_trails.cq_id = aws_cloudtrail_trail_event_selectors.trail_cq_id
       WHERE is_multi_region_trail = FALSE OR (is_multi_region_trail = TRUE AND (read_write_type != 'All' OR include_management_events = FALSE))
     EOF
     }
@@ -158,7 +158,7 @@ policy "cis-v1.20" {
     query "2.2" {
       description = "AWS CIS 2.2 Ensure CloudTrail log file validation is enabled"
       query =<<EOF
-      SELECT aws_cloudtrail_trails.account_id, region, trail_arn, log_file_validation_enabled FROM aws_cloudtrail_trails
+      SELECT aws_cloudtrail_trails.account_id, region, arn, log_file_validation_enabled FROM aws_cloudtrail_trails
       WHERE log_file_validation_enabled = FALSE
     EOF
     }
@@ -166,7 +166,7 @@ policy "cis-v1.20" {
     query "2.4" {
       description = "AWS CIS 2.4 Ensure CloudTrail trails are integrated with CloudWatch Logs"
       query =<<EOF
-      SELECT aws_cloudtrail_trails.account_id, trail_arn, latest_cloud_watch_logs_delivery_time from aws_cloudtrail_trails
+      SELECT aws_cloudtrail_trails.account_id, arn, latest_cloud_watch_logs_delivery_time from aws_cloudtrail_trails
       WHERE cloud_watch_logs_log_group_arn is NULL OR latest_cloud_watch_logs_delivery_time < (now() - '1 days'::interval)
     EOF
     }
@@ -174,7 +174,7 @@ policy "cis-v1.20" {
     query "2.6" {
       description = "AWS CIS 2.6 Ensure S3 bucket access logging is enabled on the CloudTrail S3 bucket"
       query =<<EOF
-      SELECT aws_cloudtrail_trails.account_id, s3_bucket_name, trail_arn from aws_cloudtrail_trails
+      SELECT aws_cloudtrail_trails.account_id, s3_bucket_name, arn from aws_cloudtrail_trails
       JOIN aws_s3_buckets on s3_bucket_name = aws_s3_buckets.name
       WHERE logging_target_bucket is NULL OR logging_target_prefix is NULL
     EOF
@@ -183,7 +183,7 @@ policy "cis-v1.20" {
     query "2.7" {
       description = "AWS CIS 2.7 Ensure CloudTrail logs are encrypted at rest using KMS CMKs"
       query =<<EOF
-      SELECT account_id, region, trail_arn, kms_key_id from aws_cloudtrail_trails
+      SELECT account_id, region, arn, kms_key_id from aws_cloudtrail_trails
       WHERE kms_key_id is NULL
     EOF
     }
@@ -191,15 +191,15 @@ policy "cis-v1.20" {
     query "2.8" {
       description = "AWS CIS 2.8 Ensure rotation for customer created CMKs is enabled (Scored)"
       query =<<EOF
-      SELECT account_id, region, key_arn FROM aws_kms_keys WHERE rotation_enabled = FALSE AND manager = 'CUSTOMER'
+      SELECT account_id, region, arn FROM aws_kms_keys WHERE rotation_enabled = FALSE AND manager = 'CUSTOMER'
     EOF
     }
 
     query "2.9" {
       description = "AWS CIS 2.9 Ensure VPC flow logging is enabled in all VPCs (Scored)"
       query =<<EOF
-      SELECT aws_ec2_vpcs.account_id, aws_ec2_vpcs. region, vpc_id FROM aws_ec2_vpcs
-      LEFT JOIN aws_ec2_flow_logs ON aws_ec2_vpcs.vpc_id = aws_ec2_flow_logs.resource_id WHERE aws_ec2_flow_logs.resource_id is NULL
+      SELECT aws_ec2_vpcs.account_id, aws_ec2_vpcs.region, aws_ec2_vpcs.id FROM aws_ec2_vpcs
+      LEFT JOIN aws_ec2_flow_logs ON aws_ec2_vpcs.id = aws_ec2_flow_logs.resource_id WHERE aws_ec2_flow_logs.resource_id is NULL
     EOF
     }
   }
@@ -341,8 +341,8 @@ policy "cis-v1.20" {
       description = "AWS CIS 4.1 Ensure no security groups allow ingress from 0.0.0.0/0 to port 22 (Scored)"
       query =<<EOF
       select account_id, region, group_name, from_port, to_port, cidr_ip from aws_ec2_security_groups
-          JOIN aws_ec2_security_group_ip_permissions on aws_ec2_security_groups.id = aws_ec2_security_group_ip_permissions.security_group_id
-          JOIN aws_ec2_security_group_ip_permission_ip_ranges on aws_ec2_security_group_ip_permissions.id = aws_ec2_security_group_ip_permission_ip_ranges.security_group_ip_permission_id
+          JOIN aws_ec2_security_group_ip_permissions on aws_ec2_security_groups.cq_id = aws_ec2_security_group_ip_permissions.security_group_cq_id
+          JOIN aws_ec2_security_group_ip_permission_ip_ranges on aws_ec2_security_group_ip_permissions.cq_id = aws_ec2_security_group_ip_permission_ip_ranges.security_group_ip_permission_cq_id
       WHERE from_port >= 0 AND to_port <= 22 AND cidr_ip = '0.0.0.0/0'
     EOF
     }
@@ -351,8 +351,8 @@ policy "cis-v1.20" {
       description = "AWS CIS 4.2 Ensure no security groups allow ingress from 0.0.0.0/0 to port 3389 (Scored)"
       query =<<EOF
       select account_id, region, group_name, from_port, to_port, cidr_ip from aws_ec2_security_groups
-          JOIN aws_ec2_security_group_ip_permissions on aws_ec2_security_groups.id = aws_ec2_security_group_ip_permissions.security_group_id
-          JOIN aws_ec2_security_group_ip_permission_ip_ranges on aws_ec2_security_group_ip_permissions.id = aws_ec2_security_group_ip_permission_ip_ranges.security_group_ip_permission_id
+          JOIN aws_ec2_security_group_ip_permissions on aws_ec2_security_groups.cq_id = aws_ec2_security_group_ip_permissions.security_group_cq_id
+          JOIN aws_ec2_security_group_ip_permission_ip_ranges on aws_ec2_security_group_ip_permissions.cq_id = aws_ec2_security_group_ip_permission_ip_ranges.security_group_ip_permission_cq_id
       WHERE from_port >= 0 AND to_port <= 3389 AND cidr_ip = '0.0.0.0/0'
     EOF
     }
@@ -361,8 +361,8 @@ policy "cis-v1.20" {
       description = "AWS CIS 4.3  Ensure the default security group of every VPC restricts all traffic (Scored)"
       query =<<EOF
       select account_id, region, group_name, from_port, to_port, cidr_ip from aws_ec2_security_groups
-        JOIN aws_ec2_security_group_ip_permissions on aws_ec2_security_groups.id = aws_ec2_security_group_ip_permissions.security_group_id
-        JOIN aws_ec2_security_group_ip_permission_ip_ranges on aws_ec2_security_group_ip_permissions.id = aws_ec2_security_group_ip_permission_ip_ranges.security_group_ip_permission_id
+        JOIN aws_ec2_security_group_ip_permissions on aws_ec2_security_groups.cq_id = aws_ec2_security_group_ip_permissions.security_group_cq_id
+        JOIN aws_ec2_security_group_ip_permission_ip_ranges on aws_ec2_security_group_ip_permissions.cq_id = aws_ec2_security_group_ip_permission_ip_ranges.security_group_ip_permission_cq_id
       WHERE group_name='default' AND cidr_ip = '0.0.0.0/0'
     EOF
     }

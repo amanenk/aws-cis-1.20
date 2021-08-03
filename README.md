@@ -5,6 +5,6 @@
 ## Local Usage
 
 ```bash
-cloudquery policy download cloudquery-policies/aws-cis-1.20
-cloudquery policy run cloudquery-policies/aws-cis-1.20
+cloudquery policy download cloudquery-policies/aws-cis-1.2.0
+cloudquery policy run cloudquery-policies/aws-cis-1.2.0
 ```

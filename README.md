@@ -1,10 +1,9 @@
-# CloudQuery AWS CIS 1.20 Policy Pack
+# AWS CIS 1.20 CloudQuery Policy
 
-[CloudQuery](https://github.com/cloudquery/cloudquery) [Policy Pack](https://docs.cloudquery.io/cli/policy) to Run AWS CIS 1.20 benchmark against CQ local database or SaaS version.
+[CloudQuery](https://github.com/cloudquery/cloudquery) [Policy Pack](https://docs.cloudquery.io/cli/policy) to Run [AWS CIS 1.20](https://www.cisecurity.org/benchmark/amazon_web_services/) benchmark against CQ local database or SaaS version.
 
-## Local Usage
+## Usage
 
 ```bash
-cloudquery policy download cloudquery-policies/aws-cis-1.2.0
-cloudquery policy run cloudquery-policies/aws-cis-1.2.0
+cloudquery policy run aws-cis-1.2.0
 ```

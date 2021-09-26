@@ -340,20 +340,30 @@ policy "cis-v1.20" {
     query "4.1" {
       description = "AWS CIS 4.1 Ensure no security groups allow ingress from 0.0.0.0/0 to port 22 (Scored)"
       query =<<EOF
-      select account_id, region, group_name, from_port, to_port, cidr_ip from aws_ec2_security_groups
-          JOIN aws_ec2_security_group_ip_permissions on aws_ec2_security_groups.cq_id = aws_ec2_security_group_ip_permissions.security_group_cq_id
-          JOIN aws_ec2_security_group_ip_permission_ip_ranges on aws_ec2_security_group_ip_permissions.cq_id = aws_ec2_security_group_ip_permission_ip_ranges.security_group_ip_permission_cq_id
-      WHERE from_port >= 0 AND to_port <= 22 AND cidr_ip = '0.0.0.0/0'
+        SELECT account_id, region, group_name, from_port, to_port, cidr_ip
+        FROM aws_ec2_security_groups
+        JOIN aws_ec2_security_group_ip_permissions ON
+        aws_ec2_security_groups.cq_id = aws_ec2_security_group_ip_permissions.security_group_cq_id
+        JOIN aws_ec2_security_group_ip_permission_ip_ranges ON
+        aws_ec2_security_group_ip_permissions.cq_id = aws_ec2_security_group_ip_permission_ip_ranges.security_group_ip_permission_cq_id
+        WHERE ((from_port IS NULL AND to_port IS NULL)
+            OR 22 BETWEEN from_port AND to_port)
+        AND cidr_ip = '0.0.0.0/0'
     EOF
     }
 
     query "4.2" {
       description = "AWS CIS 4.2 Ensure no security groups allow ingress from 0.0.0.0/0 to port 3389 (Scored)"
       query =<<EOF
-      select account_id, region, group_name, from_port, to_port, cidr_ip from aws_ec2_security_groups
-          JOIN aws_ec2_security_group_ip_permissions on aws_ec2_security_groups.cq_id = aws_ec2_security_group_ip_permissions.security_group_cq_id
-          JOIN aws_ec2_security_group_ip_permission_ip_ranges on aws_ec2_security_group_ip_permissions.cq_id = aws_ec2_security_group_ip_permission_ip_ranges.security_group_ip_permission_cq_id
-      WHERE from_port >= 0 AND to_port <= 3389 AND cidr_ip = '0.0.0.0/0'
+        SELECT account_id, region, group_name, from_port, to_port, cidr_ip
+        FROM aws_ec2_security_groups
+        JOIN aws_ec2_security_group_ip_permissions ON
+        aws_ec2_security_groups.cq_id = aws_ec2_security_group_ip_permissions.security_group_cq_id
+        JOIN aws_ec2_security_group_ip_permission_ip_ranges ON
+        aws_ec2_security_group_ip_permissions.cq_id = aws_ec2_security_group_ip_permission_ip_ranges.security_group_ip_permission_cq_id
+        WHERE ((from_port IS NULL AND to_port IS NULL)
+            OR 3389 BETWEEN from_port AND to_port)
+        AND cidr_ip = '0.0.0.0/0'
     EOF
     }
 
